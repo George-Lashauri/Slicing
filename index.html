@@ -4,11 +4,134 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="stylesheet" href="styles.css">
-    <title>Slicing</title>
+    <title>Board Cutting Calculator</title>
 </head>
 <body>
-    <H1>Slicing project</H1>
+    <div class="container">
+        <header>
+            <h1>Board Cutting Calculator</h1>
+            <p class="subtitle">Check if your cut boards fit in a whole board</p>
+        </header>
 
+        <main>
+            <div class="layout">
+                <!-- Input Section -->
+                <section class="input-section">
+                    <h2>Board Specifications</h2>
+                    
+                    <div class="form-group">
+                        <label for="boardWidth">Board Width (mm)</label>
+                        <input type="number" id="boardWidth" placeholder="3640" min="1" value="3640" readonly>
+                        <small class="form-hint">Standard: 3640mm</small>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="boardHeight">Board Height (mm)</label>
+                        <input type="number" id="boardHeight" placeholder="2080" min="1" value="2080" readonly>
+                        <small class="form-hint">Standard: 2080mm</small>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="numBoards">Number of Boards Available</label>
+                        <input type="number" id="numBoards" placeholder="e.g., 1" min="0.5" step="0.5" value="1">
+                        <small class="form-hint">Can be 1, 1.5, 2, 2.5, etc.</small>
+                    </div>
+
+                    <h2 style="margin-top: 30px;">Cut Pieces</h2>
+                    <p class="instruction">Add each cut piece you need</p>
+                    <div class="cuts-table-wrapper">
+                        <table class="cuts-table">
+                            <thead>
+                                <tr>
+                                    <th>#</th>
+                                    <th>Width (mm)</th>
+                                    <th>Height (mm)</th>
+                                    <th>Quantity</th>
+                                </tr>
+                            </thead>
+                            <tbody id="cutsList">
+                                <tr class="cut-row">
+                                    <td class="cut-number">1</td>
+                                    <td><input type="number" class="cut-width" placeholder="e.g., 1000" min="1"></td>
+                                    <td><input type="number" class="cut-height" placeholder="e.g., 500" min="1"></td>
+                                    <td><input type="number" class="cut-quantity" placeholder="1" min="1" value="1"></td>
+                                </tr>
+                                <tr class="cut-row">
+                                    <td class="cut-number">2</td>
+                                    <td><input type="number" class="cut-width" placeholder="e.g., 1000" min="1"></td>
+                                    <td><input type="number" class="cut-height" placeholder="e.g., 500" min="1"></td>
+                                    <td><input type="number" class="cut-quantity" placeholder="1" min="1" value="1"></td>
+                                </tr>
+                                <tr class="cut-row">
+                                    <td class="cut-number">3</td>
+                                    <td><input type="number" class="cut-width" placeholder="e.g., 1000" min="1"></td>
+                                    <td><input type="number" class="cut-height" placeholder="e.g., 500" min="1"></td>
+                                    <td><input type="number" class="cut-quantity" placeholder="1" min="1" value="1"></td>
+                                </tr>
+                                <tr class="cut-row">
+                                    <td class="cut-number">4</td>
+                                    <td><input type="number" class="cut-width" placeholder="e.g., 1000" min="1"></td>
+                                    <td><input type="number" class="cut-height" placeholder="e.g., 500" min="1"></td>
+                                    <td><input type="number" class="cut-quantity" placeholder="1" min="1" value="1"></td>
+                                </tr>
+                                <tr class="cut-row">
+                                    <td class="cut-number">5</td>
+                                    <td><input type="number" class="cut-width" placeholder="e.g., 1000" min="1"></td>
+                                    <td><input type="number" class="cut-height" placeholder="e.g., 500" min="1"></td>
+                                    <td><input type="number" class="cut-quantity" placeholder="1" min="1" value="1"></td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <div class="button-group">
+                        <button class="btn btn-secondary" onclick="resetForm()">Clear All</button>
+                        <button class="btn btn-primary" onclick="calculateCutting()">Calculate Fit</button>
+                    </div>
+                </section>
+
+                <!-- Results Section -->
+                <section class="results-section">
+                    <h2>Results</h2>
+                    
+                    <div id="resultStatus" class="result-status" style="display: none;">
+                        <div id="statusMessage" class="status-message"></div>
+                    </div>
+
+                    <div id="statsContainer" style="display: none;" class="stats-container">
+                        <div class="stat-box">
+                            <div class="stat-label">Total Cut Area</div>
+                            <div class="stat-value" id="totalCutArea">0</div>
+                        </div>
+                        <div class="stat-box">
+                            <div class="stat-label">Board Area</div>
+                            <div class="stat-value" id="boardArea">0</div>
+                        </div>
+                        <div class="stat-box">
+                            <div class="stat-label">Utilization</div>
+                            <div class="stat-value" id="utilization">0%</div>
+                        </div>
+                    </div>
+
+                    <div id="placementInfo" style="display: none;">
+                        <h3>Piece Placements</h3>
+                        <div id="placementList"></div>
+                    </div>
+
+                    <div id="noResultMessage" style="display: none;" class="no-result">
+                        <p>Enter board dimensions and cut pieces, then click "Calculate Fit"</p>
+                    </div>
+                </section>
+            </div>
+
+            <!-- Canvas Section for Visualization -->
+            <section class="visualization-section">
+                <h2>Board Layout Visualization</h2>
+                <canvas id="boardCanvas" width="800" height="400"></canvas>
+                <p class="canvas-info">Green = Placed cuts, Red = Cannot fit</p>
+            </section>
+        </main>
+    </div>
 
     <script src="script.js"></script>
 </body>
