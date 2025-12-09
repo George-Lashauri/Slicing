@@ -210,22 +210,28 @@ function drawBoardLayout(bw, bh, p, nb) {
     const failedPieces = p.filter(x => x.failed);
     const bn = new Set(p.filter(x => !x.failed).map(x => x.boardNumber));
     const nbs = Math.max(bn.size, Math.ceil(nb));
-    const bpr = nbs <= 2 ? nbs : 2;
-    const br = Math.ceil(nbs / bpr);
+    
+    // Always arrange boards in a single column
+    const bpr = 1; // Single column layout
+    const br = nbs;
     
     // Calculate available space for boards (leave space for failed pieces section)
     const hasFailedPieces = failedPieces.length > 0;
     const boardAreaHeight = hasFailedPieces ? ch * 0.65 : ch; // Reserve bottom 35% for failed pieces
-    const aw = cw / bpr, ah = boardAreaHeight / br;
-    const scale = Math.min(aw / bw, ah / bh) * 0.85;
+    const aw = cw * 0.9; // Use 90% of canvas width for substantial size
+    const boardSpacing = 60; // Spacing between boards
+    const ah = (boardAreaHeight - (boardSpacing * (nbs - 1))) / nbs; // Distribute height evenly
+    
+    // Calculate scale for substantial size - use larger scale factor
+    const scale = Math.min(aw / bw, ah / bh) * 0.95; // Increased from 0.85 to 0.95 for larger boards
     
     ctx.fillStyle = '#f9fafb';
     ctx.fillRect(0, 0, cw, ch);
     
-    // Draw all boards in the top section
+    // Draw all boards in a single column
     for (let bi = 1; bi <= nbs; bi++) {
-        const r = Math.floor((bi - 1) / bpr), col = (bi - 1) % bpr;
-        const ox = col * aw + (aw - bw * scale) / 2, oy = r * ah + 30;
+        const ox = (cw - bw * scale) / 2; // Center horizontally
+        const oy = (bi - 1) * (bh * scale + boardSpacing) + 40; // Stack vertically with spacing
         drawSingleBoard(ctx, bw, bh, scale, ox, oy, bi, p);
     }
     
@@ -240,33 +246,117 @@ function drawSingleBoard(ctx, bw, bh, sc, ox, oy, bn, p) {
     ctx.strokeStyle = '#111827';
     ctx.lineWidth = 3;
     ctx.strokeRect(ox, oy, bw * sc, bh * sc);
-    ctx.fillStyle = '#1f2937';
-    ctx.font = 'bold 16px sans-serif';
-    ctx.textAlign = 'left';
-    ctx.fillText(`Board #${bn}`, ox + 10, oy - 8);
-    ctx.fillStyle = '#6b7280';
-    ctx.font = 'bold 12px sans-serif';
-    ctx.textAlign = 'center';
-    ctx.fillText(`${bw}mm`, ox + (bw * sc) / 2, oy - 25);
     
+    // Draw board title with enhanced padding/background for visibility
+    const titleText = `Board #${bn}`;
+    ctx.font = 'bold 18px sans-serif';
+    ctx.textAlign = 'left';
+    const titleMetrics = ctx.measureText(titleText);
+    const titlePadding = 10;
+    const titleHeight = 26;
+    
+    // Draw title background with border for better visibility
+    ctx.fillStyle = 'rgba(255, 255, 255, 0.98)';
+    ctx.fillRect(ox + 10 - titlePadding, oy - titleHeight - 2, titleMetrics.width + titlePadding * 2, titleHeight);
+    ctx.strokeStyle = '#1f2937';
+    ctx.lineWidth = 1.5;
+    ctx.strokeRect(ox + 10 - titlePadding, oy - titleHeight - 2, titleMetrics.width + titlePadding * 2, titleHeight);
+    
+    // Draw title text
+    ctx.fillStyle = '#1f2937';
+    ctx.fillText(titleText, ox + 10, oy - 8);
+    
+    // Draw board dimensions with enhanced padding
+    const dimText = `${bw}mm × ${bh}mm`;
+    ctx.font = 'bold 14px sans-serif';
+    ctx.textAlign = 'center';
+    const dimMetrics = ctx.measureText(dimText);
+    const dimPadding = 10;
+    const dimHeight = 22;
+    
+    // Draw dimensions background with border
+    ctx.fillStyle = 'rgba(255, 255, 255, 0.98)';
+    ctx.fillRect(
+        ox + (bw * sc) / 2 - dimMetrics.width / 2 - dimPadding, 
+        oy - titleHeight - dimHeight - 6, 
+        dimMetrics.width + dimPadding * 2, 
+        dimHeight
+    );
+    ctx.strokeStyle = '#6b7280';
+    ctx.lineWidth = 1.5;
+    ctx.strokeRect(
+        ox + (bw * sc) / 2 - dimMetrics.width / 2 - dimPadding, 
+        oy - titleHeight - dimHeight - 6, 
+        dimMetrics.width + dimPadding * 2, 
+        dimHeight
+    );
+    
+    // Draw dimensions text
+    ctx.fillStyle = '#6b7280';
+    ctx.fillText(dimText, ox + (bw * sc) / 2, oy - titleHeight - 12);
+    
+    // Draw all pieces on the board
     p.filter(x => x.boardNumber === bn && !x.failed).forEach(pl => {
         const x = ox + pl.x * sc, y = oy + pl.y * sc, w = pl.width * sc, h = pl.height * sc;
+        
+        // Draw spacing area
         ctx.fillStyle = '#f3f4f633';
         ctx.fillRect(x - CUT_SPACING * sc, y - CUT_SPACING * sc, w + 2 * CUT_SPACING * sc, h + 2 * CUT_SPACING * sc);
+        
+        // Draw piece
         ctx.fillStyle = '#10b98133';
         ctx.fillRect(x, y, w, h);
         ctx.strokeStyle = '#10b981';
         ctx.lineWidth = 2;
         ctx.strokeRect(x, y, w, h);
-        if (w > 40 && h > 30) {
-            ctx.fillStyle = '#065f46';
-            ctx.font = 'bold 10px sans-serif';
-            ctx.textAlign = 'center';
-            ctx.textBaseline = 'middle';
-            ctx.fillText(`${pl.width}×${pl.height}`, x + w / 2, y + h / 2 - 6);
-            ctx.font = '9px sans-serif';
-            ctx.fillText(`#${pl.originalId + 1}`, x + w / 2, y + h / 2 + 6);
-        }
+        
+        // Always show dimensions for ALL pieces, regardless of size
+        const dimText = `${pl.width}mm × ${pl.height}mm`;
+        const idText = `#${pl.originalId + 1}`;
+        
+        // Calculate text size based on piece size, but ensure minimum readability
+        let fontSize = Math.max(10, Math.min(w, h) * 0.15); // Scale font with piece size, min 10px
+        fontSize = Math.min(fontSize, 14); // Max 14px for consistency
+        
+        // Draw text background for visibility (padding)
+        ctx.font = `bold ${fontSize}px sans-serif`;
+        const dimMetrics = ctx.measureText(dimText);
+        ctx.font = `${fontSize - 2}px sans-serif`;
+        const idMetrics = ctx.measureText(idText);
+        
+        const textWidth = Math.max(dimMetrics.width, idMetrics.width);
+        const textHeight = fontSize * 2 + 4;
+        const padding = 6;
+        
+        // Draw background rectangle for text
+        ctx.fillStyle = 'rgba(255, 255, 255, 0.95)';
+        ctx.fillRect(
+            x + w / 2 - textWidth / 2 - padding,
+            y + h / 2 - textHeight / 2 - padding,
+            textWidth + padding * 2,
+            textHeight + padding * 2
+        );
+        
+        // Draw border around text background
+        ctx.strokeStyle = '#065f46';
+        ctx.lineWidth = 1;
+        ctx.strokeRect(
+            x + w / 2 - textWidth / 2 - padding,
+            y + h / 2 - textHeight / 2 - padding,
+            textWidth + padding * 2,
+            textHeight + padding * 2
+        );
+        
+        // Draw dimensions text
+        ctx.fillStyle = '#065f46';
+        ctx.font = `bold ${fontSize}px sans-serif`;
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(dimText, x + w / 2, y + h / 2 - fontSize / 2 - 2);
+        
+        // Draw ID text
+        ctx.font = `${fontSize - 2}px sans-serif`;
+        ctx.fillText(idText, x + w / 2, y + h / 2 + fontSize / 2 + 2);
     });
 }
 
@@ -289,16 +379,34 @@ function drawFailedPiecesSection(ctx, bw, bh, p, nb, scale, cw, ch, boardAreaHei
     ctx.strokeRect(sectionPadding, sectionY, sectionWidth, sectionHeight);
     ctx.setLineDash([]);
     
-    // Draw section title
-    ctx.fillStyle = '#7f1d1d';
-    ctx.font = 'bold 16px sans-serif';
+    // Draw section title with background for visibility
+    const titleText = 'Unfitted Pieces Inventory';
+    ctx.font = 'bold 18px sans-serif';
     ctx.textAlign = 'left';
-    ctx.fillText('Unfitted Pieces Inventory', sectionPadding + 10, sectionY + 25);
+    const titleMetrics = ctx.measureText(titleText);
+    const titlePadding = 10;
     
-    // Draw subtitle with count
+    // Draw title background
+    ctx.fillStyle = 'rgba(255, 255, 255, 0.95)';
+    ctx.fillRect(sectionPadding + 10 - titlePadding, sectionY + 10, titleMetrics.width + titlePadding * 2, 24);
+    ctx.strokeStyle = '#7f1d1d';
+    ctx.lineWidth = 2;
+    ctx.strokeRect(sectionPadding + 10 - titlePadding, sectionY + 10, titleMetrics.width + titlePadding * 2, 24);
+    
+    // Draw title text
+    ctx.fillStyle = '#7f1d1d';
+    ctx.fillText(titleText, sectionPadding + 10, sectionY + 28);
+    
+    // Draw subtitle with count and background
+    const subtitleText = `Total: ${failedPieces.length} piece(s) that cannot be fitted`;
+    ctx.font = '13px sans-serif';
+    const subtitleMetrics = ctx.measureText(subtitleText);
+    
+    ctx.fillStyle = 'rgba(255, 255, 255, 0.9)';
+    ctx.fillRect(sectionPadding + 10 - titlePadding, sectionY + 38, subtitleMetrics.width + titlePadding * 2, 20);
+    
     ctx.fillStyle = '#991b1b';
-    ctx.font = '12px sans-serif';
-    ctx.fillText(`Total: ${failedPieces.length} piece(s) that cannot be fitted`, sectionPadding + 10, sectionY + 42);
+    ctx.fillText(subtitleText, sectionPadding + 10, sectionY + 52);
     
     // Calculate grid layout for pieces
     const pieceSpacing = 15;
@@ -350,26 +458,68 @@ function drawFailedPiecesSection(ctx, bw, bh, p, nb, scale, cw, ch, boardAreaHei
         ctx.strokeRect(x, y, displayW, displayH);
         ctx.setLineDash([]);
         
-        // Draw dimensions
-        if (displayW > 25 && displayH > 15) {
-            ctx.fillStyle = '#7f1d1d';
-            ctx.font = 'bold 10px sans-serif';
-            ctx.textAlign = 'center';
-            ctx.textBaseline = 'middle';
-            ctx.fillText(`${fp.width}×${fp.height}`, x + displayW / 2, y + displayH / 2 - 5);
-            
-            // Draw piece ID
-            if (fp.originalId !== undefined) {
-                ctx.font = '9px sans-serif';
-                ctx.fillText(`ID: #${fp.originalId + 1}`, x + displayW / 2, y + displayH / 2 + 7);
-            }
+        // Always draw dimensions with padding for visibility (for ALL pieces)
+        const dimText = `${fp.width}mm × ${fp.height}mm`;
+        const idText = fp.originalId !== undefined ? `ID: #${fp.originalId + 1}` : '';
+        
+        // Calculate font size based on piece size, ensure minimum readability
+        let fontSize = Math.max(9, Math.min(displayW, displayH) * 0.12);
+        fontSize = Math.min(fontSize, 12);
+        
+        // Measure text
+        ctx.font = `bold ${fontSize}px sans-serif`;
+        const dimMetrics = ctx.measureText(dimText);
+        let idMetrics = { width: 0 };
+        if (idText) {
+            ctx.font = `${fontSize - 1}px sans-serif`;
+            idMetrics = ctx.measureText(idText);
         }
         
-        // Draw "Cannot Fit" label above piece
-        ctx.fillStyle = '#dc2626';
-        ctx.font = 'bold 9px sans-serif';
+        const textWidth = Math.max(dimMetrics.width, idMetrics.width);
+        const textHeight = idText ? fontSize * 2 + 3 : fontSize + 2;
+        const padding = 5;
+        
+        // Draw text background for visibility
+        ctx.fillStyle = 'rgba(255, 255, 255, 0.95)';
+        ctx.fillRect(
+            x + displayW / 2 - textWidth / 2 - padding,
+            y + displayH / 2 - textHeight / 2 - padding,
+            textWidth + padding * 2,
+            textHeight + padding * 2
+        );
+        
+        // Draw border around text background
+        ctx.strokeStyle = '#7f1d1d';
+        ctx.lineWidth = 1;
+        ctx.strokeRect(
+            x + displayW / 2 - textWidth / 2 - padding,
+            y + displayH / 2 - textHeight / 2 - padding,
+            textWidth + padding * 2,
+            textHeight + padding * 2
+        );
+        
+        // Draw dimensions text
+        ctx.fillStyle = '#7f1d1d';
+        ctx.font = `bold ${fontSize}px sans-serif`;
         ctx.textAlign = 'center';
-        ctx.fillText('✗ Cannot Fit', x + displayW / 2, y - 5);
+        ctx.textBaseline = 'middle';
+        ctx.fillText(dimText, x + displayW / 2, y + displayH / 2 - (idText ? fontSize / 2 : 0));
+        
+        // Draw piece ID if available
+        if (idText) {
+            ctx.font = `${fontSize - 1}px sans-serif`;
+            ctx.fillText(idText, x + displayW / 2, y + displayH / 2 + fontSize / 2 + 1);
+        }
+        
+        // Draw "Cannot Fit" label above piece with background for visibility
+        const labelText = '✗ Cannot Fit';
+        ctx.font = 'bold 10px sans-serif';
+        const labelMetrics = ctx.measureText(labelText);
+        ctx.fillStyle = 'rgba(255, 255, 255, 0.95)';
+        ctx.fillRect(x + displayW / 2 - labelMetrics.width / 2 - 4, y - 18, labelMetrics.width + 8, 14);
+        ctx.fillStyle = '#dc2626';
+        ctx.textAlign = 'center';
+        ctx.fillText(labelText, x + displayW / 2, y - 6);
     });
     
     // Draw separator line
