@@ -311,6 +311,49 @@ h2 {
     margin-top: 10px;
 }
 
+.fit-message {
+    padding: 15px 20px;
+    border-radius: 8px;
+    margin-bottom: 20px;
+    font-weight: 400;
+    text-align: left;
+    display: none;
+    line-height: 1.6;
+}
+
+.fit-message.error {
+    display: block;
+    background-color: rgba(239, 68, 68, 0.1);
+    color: #7f1d1d;
+    border: 2px solid var(--danger-color);
+}
+
+.fit-message.success {
+    display: block;
+    background-color: rgba(16, 185, 129, 0.1);
+    color: #065f46;
+    border: 2px solid var(--success-color);
+    text-align: center;
+}
+
+.fit-message ul {
+    margin: 10px 0;
+    padding-left: 20px;
+}
+
+.fit-message li {
+    margin: 5px 0;
+}
+
+.fit-message strong {
+    font-weight: 600;
+}
+
+.fit-message em {
+    font-style: italic;
+    font-size: 0.95em;
+}
+
 /* ============================================
    RESULTS SECTION (for future use)
    ============================================ */

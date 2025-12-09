@@ -154,27 +154,84 @@ function calculateCutting() {
     if (cuts.length === 0) return alert('Please add at least one cut piece');
     
     placements = packMultipleBoards(bw, bh, nb, cuts);
+    displayFitMessage(placements);
     drawBoardLayout(bw, bh, placements, nb);
+}
+
+// Display comprehensive message about fit status
+function displayFitMessage(placements) {
+    const messageEl = document.getElementById('fitMessage');
+    const failedPieces = placements.filter(p => p.failed);
+    
+    if (failedPieces.length > 0) {
+        messageEl.className = 'fit-message error';
+        
+        // Group failed pieces by dimensions to show quantity
+        const pieceGroups = {};
+        failedPieces.forEach(fp => {
+            const key = `${fp.width}×${fp.height}`;
+            if (!pieceGroups[key]) {
+                pieceGroups[key] = {
+                    width: fp.width,
+                    height: fp.height,
+                    count: 0,
+                    ids: []
+                };
+            }
+            pieceGroups[key].count++;
+            if (fp.originalId !== undefined) {
+                pieceGroups[key].ids.push(fp.originalId + 1);
+            }
+        });
+        
+        // Build detailed message
+        let messageHTML = `<strong>⚠️ Warning: ${failedPieces.length} cut piece(s) cannot be fitted onto the available board(s).</strong><br><br>`;
+        messageHTML += '<strong>Unfitted Pieces Inventory:</strong><ul style="margin: 10px 0; padding-left: 20px;">';
+        
+        Object.values(pieceGroups).forEach(group => {
+            const idsList = group.ids.length > 0 ? ` (IDs: ${group.ids.join(', ')})` : '';
+            messageHTML += `<li><strong>${group.count}x</strong> piece(s) of size <strong>${group.width}mm × ${group.height}mm</strong>${idsList}</li>`;
+        });
+        
+        messageHTML += '</ul>';
+        messageHTML += '<em>These pieces are displayed in the dedicated "Unfitted Pieces" section below.</em>';
+        
+        messageEl.innerHTML = messageHTML;
+    } else {
+        messageEl.className = 'fit-message success';
+        messageEl.innerHTML = '<strong>✓ Success:</strong> All cut pieces fit successfully in the available board(s)!';
+    }
 }
 
 // Draw board layout
 function drawBoardLayout(bw, bh, p, nb) {
     const c = document.getElementById('boardCanvas'), ctx = c.getContext('2d');
     const cw = c.width, ch = c.height;
+    const failedPieces = p.filter(x => x.failed);
     const bn = new Set(p.filter(x => !x.failed).map(x => x.boardNumber));
     const nbs = Math.max(bn.size, Math.ceil(nb));
     const bpr = nbs <= 2 ? nbs : 2;
     const br = Math.ceil(nbs / bpr);
-    const aw = cw / bpr, ah = ch / br;
+    
+    // Calculate available space for boards (leave space for failed pieces section)
+    const hasFailedPieces = failedPieces.length > 0;
+    const boardAreaHeight = hasFailedPieces ? ch * 0.65 : ch; // Reserve bottom 35% for failed pieces
+    const aw = cw / bpr, ah = boardAreaHeight / br;
     const scale = Math.min(aw / bw, ah / bh) * 0.85;
     
     ctx.fillStyle = '#f9fafb';
     ctx.fillRect(0, 0, cw, ch);
     
+    // Draw all boards in the top section
     for (let bi = 1; bi <= nbs; bi++) {
         const r = Math.floor((bi - 1) / bpr), col = (bi - 1) % bpr;
         const ox = col * aw + (aw - bw * scale) / 2, oy = r * ah + 30;
         drawSingleBoard(ctx, bw, bh, scale, ox, oy, bi, p);
+    }
+    
+    // Draw dedicated section for failed pieces
+    if (hasFailedPieces) {
+        drawFailedPiecesSection(ctx, bw, bh, p, nb, scale, cw, ch, boardAreaHeight);
     }
 }
 
@@ -211,6 +268,119 @@ function drawSingleBoard(ctx, bw, bh, sc, ox, oy, bn, p) {
             ctx.fillText(`#${pl.originalId + 1}`, x + w / 2, y + h / 2 + 6);
         }
     });
+}
+
+// Draw dedicated section for failed pieces
+function drawFailedPiecesSection(ctx, bw, bh, p, nb, scale, cw, ch, boardAreaHeight) {
+    const failedPieces = p.filter(x => x.failed);
+    if (failedPieces.length === 0) return;
+    
+    const sectionY = boardAreaHeight + 10;
+    const sectionHeight = ch - sectionY - 10;
+    const sectionPadding = 15;
+    const sectionWidth = cw - (sectionPadding * 2);
+    
+    // Draw section background (blank/light area)
+    ctx.fillStyle = '#fef2f2';
+    ctx.fillRect(sectionPadding, sectionY, sectionWidth, sectionHeight);
+    ctx.strokeStyle = '#ef4444';
+    ctx.lineWidth = 3;
+    ctx.setLineDash([8, 4]);
+    ctx.strokeRect(sectionPadding, sectionY, sectionWidth, sectionHeight);
+    ctx.setLineDash([]);
+    
+    // Draw section title
+    ctx.fillStyle = '#7f1d1d';
+    ctx.font = 'bold 16px sans-serif';
+    ctx.textAlign = 'left';
+    ctx.fillText('Unfitted Pieces Inventory', sectionPadding + 10, sectionY + 25);
+    
+    // Draw subtitle with count
+    ctx.fillStyle = '#991b1b';
+    ctx.font = '12px sans-serif';
+    ctx.fillText(`Total: ${failedPieces.length} piece(s) that cannot be fitted`, sectionPadding + 10, sectionY + 42);
+    
+    // Calculate grid layout for pieces
+    const pieceSpacing = 15;
+    const maxPieceWidth = 120;
+    const maxPieceHeight = 80;
+    const piecesPerRow = Math.floor((sectionWidth - 20) / (maxPieceWidth + pieceSpacing));
+    const rowsNeeded = Math.ceil(failedPieces.length / piecesPerRow);
+    
+    // Draw each failed piece in grid layout
+    failedPieces.forEach((fp, idx) => {
+        const row = Math.floor(idx / piecesPerRow);
+        const col = idx % piecesPerRow;
+        
+        // Calculate piece dimensions maintaining aspect ratio
+        const aspectRatio = fp.width / fp.height;
+        let displayW = Math.min(fp.width * scale, maxPieceWidth);
+        let displayH = Math.min(fp.height * scale, maxPieceHeight);
+        
+        if (aspectRatio > 1) {
+            displayH = displayW / aspectRatio;
+            if (displayH > maxPieceHeight) {
+                displayH = maxPieceHeight;
+                displayW = displayH * aspectRatio;
+            }
+        } else {
+            displayW = displayH * aspectRatio;
+            if (displayW > maxPieceWidth) {
+                displayW = maxPieceWidth;
+                displayH = displayW / aspectRatio;
+            }
+        }
+        
+        // Calculate position
+        const startX = sectionPadding + 20;
+        const startY = sectionY + 60;
+        const x = startX + col * (maxPieceWidth + pieceSpacing) + (maxPieceWidth - displayW) / 2;
+        const y = startY + row * (maxPieceHeight + pieceSpacing + 20) + (maxPieceHeight - displayH) / 2;
+        
+        // Draw piece background
+        ctx.fillStyle = '#fee2e2';
+        ctx.fillRect(x - 2, y - 2, displayW + 4, displayH + 4);
+        
+        // Draw piece outline
+        ctx.fillStyle = '#ef444433';
+        ctx.fillRect(x, y, displayW, displayH);
+        ctx.strokeStyle = '#ef4444';
+        ctx.lineWidth = 2;
+        ctx.setLineDash([4, 4]);
+        ctx.strokeRect(x, y, displayW, displayH);
+        ctx.setLineDash([]);
+        
+        // Draw dimensions
+        if (displayW > 25 && displayH > 15) {
+            ctx.fillStyle = '#7f1d1d';
+            ctx.font = 'bold 10px sans-serif';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText(`${fp.width}×${fp.height}`, x + displayW / 2, y + displayH / 2 - 5);
+            
+            // Draw piece ID
+            if (fp.originalId !== undefined) {
+                ctx.font = '9px sans-serif';
+                ctx.fillText(`ID: #${fp.originalId + 1}`, x + displayW / 2, y + displayH / 2 + 7);
+            }
+        }
+        
+        // Draw "Cannot Fit" label above piece
+        ctx.fillStyle = '#dc2626';
+        ctx.font = 'bold 9px sans-serif';
+        ctx.textAlign = 'center';
+        ctx.fillText('✗ Cannot Fit', x + displayW / 2, y - 5);
+    });
+    
+    // Draw separator line
+    ctx.strokeStyle = '#fca5a5';
+    ctx.lineWidth = 1;
+    ctx.setLineDash([2, 2]);
+    ctx.beginPath();
+    ctx.moveTo(sectionPadding + 10, sectionY + 5);
+    ctx.lineTo(cw - sectionPadding - 10, sectionY + 5);
+    ctx.stroke();
+    ctx.setLineDash([]);
 }
 
 document.addEventListener('DOMContentLoaded', initializePasteHandlers);
