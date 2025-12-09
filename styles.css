@@ -107,6 +107,18 @@ h2 {
     transition: all 0.3s ease;
 }
 
+/* Remove number input arrows from Board Specifications */
+.form-group input[type="number"]::-webkit-outer-spin-button,
+.form-group input[type="number"]::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+}
+
+.form-group input[type="number"] {
+    appearance: textfield;
+    -moz-appearance: textfield;
+}
+
 .form-group input:focus {
     outline: none;
     border-color: var(--primary-color);
