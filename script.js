@@ -102,12 +102,6 @@ function resetForm() {
     
     // Reset board number to 1
     document.getElementById('numBoards').value = '1';
-    
-    // Hide results
-    document.getElementById('resultStatus').style.display = 'none';
-    document.getElementById('statsContainer').style.display = 'none';
-    document.getElementById('placementInfo').style.display = 'none';
-    document.getElementById('noResultMessage').style.display = 'block';
 }
 
 // Get cut items from form
@@ -346,101 +340,8 @@ function calculateCutting() {
     // Pack rectangles across multiple boards
     placements = packMultipleBoards(boardWidth, boardHeight, numBoards, cuts);
     
-    // Calculate statistics
-    const totalCutArea = cuts.reduce((sum, cut) => sum + (cut.width * cut.height), 0);
-    const singleBoardArea = boardWidth * boardHeight;
-    const totalBoardArea = singleBoardArea * numBoards;
-    const successfulPlacements = placements.filter(p => !p.failed);
-    const failedPlacements = placements.filter(p => p.failed);
-    const utilization = (totalCutArea / totalBoardArea * 100).toFixed(2);
-    
-    // Display results
-    displayResults(boardWidth, boardHeight, cuts, successfulPlacements, failedPlacements, utilization, totalBoardArea, numBoards);
-    
     // Draw visualization
     drawBoardLayout(boardWidth, boardHeight, placements, numBoards);
-}
-
-// Display results
-function displayResults(boardWidth, boardHeight, cuts, successful, failed, utilization, boardArea, numBoards) {
-    const resultStatus = document.getElementById('resultStatus');
-    const statusMessage = document.getElementById('statusMessage');
-    const statsContainer = document.getElementById('statsContainer');
-    const placementInfo = document.getElementById('placementInfo');
-    const placementList = document.getElementById('placementList');
-    const noResultMessage = document.getElementById('noResultMessage');
-    
-    const totalCutArea = cuts.reduce((sum, cut) => sum + (cut.width * cut.height), 0);
-    
-    // Show/hide elements
-    resultStatus.style.display = 'block';
-    statsContainer.style.display = 'grid';
-    noResultMessage.style.display = 'none';
-    placementInfo.style.display = 'block';
-    
-    // Update status
-    if (failed.length === 0) {
-        resultStatus.className = 'result-status success';
-        const boardText = numBoards === 1 ? 'board' : `${numBoards} boards`;
-        statusMessage.innerHTML = `✓ All ${successful.length} pieces fit in ${boardText}!`;
-    } else {
-        resultStatus.className = 'result-status error';
-        const boardText = numBoards === 1 ? 'board' : `${numBoards} boards`;
-        statusMessage.innerHTML = `✗ ${failed.length} piece(s) don't fit | ${successful.length} placed successfully in ${boardText}`;
-    }
-    
-    // Update statistics
-    document.getElementById('totalCutArea').textContent = totalCutArea.toLocaleString() + ' mm²';
-    document.getElementById('boardArea').textContent = boardArea.toLocaleString() + ' mm²';
-    document.getElementById('utilization').textContent = utilization + '%';
-    
-    // Update placement list - group by board
-    placementList.innerHTML = '';
-    
-    // Get all board numbers
-    const boardNumbers = new Set(successful.map(p => p.boardNumber));
-    const sortedBoards = Array.from(boardNumbers).sort((a, b) => a - b);
-    
-    sortedBoards.forEach(boardNum => {
-        const boardHeader = document.createElement('div');
-        boardHeader.style.fontWeight = 'bold';
-        boardHeader.style.marginTop = '15px';
-        boardHeader.style.marginBottom = '10px';
-        boardHeader.style.color = '#1e40af';
-        boardHeader.innerHTML = `Board #${boardNum}${successful.some(p => p.boardNumber === boardNum && p.isPartial) ? ' (Half)' : ''}`;
-        placementList.appendChild(boardHeader);
-        
-        successful.filter(p => p.boardNumber === boardNum).forEach((placement) => {
-            const item = document.createElement('div');
-            item.className = 'placement-item';
-            const rotatedText = placement.rotated ? ' (rotated)' : '';
-            item.innerHTML = `
-                <strong>Piece ${placement.originalId + 1}:</strong> 
-                ${placement.width}×${placement.height}mm at (${placement.x}, ${placement.y})${rotatedText}
-            `;
-            placementList.appendChild(item);
-        });
-    });
-    
-    if (failed.length > 0) {
-        const failedHeader = document.createElement('div');
-        failedHeader.style.fontWeight = 'bold';
-        failedHeader.style.marginTop = '15px';
-        failedHeader.style.marginBottom = '10px';
-        failedHeader.style.color = '#dc2626';
-        failedHeader.innerHTML = 'Does Not Fit:';
-        placementList.appendChild(failedHeader);
-        
-        failed.forEach((placement) => {
-            const item = document.createElement('div');
-            item.className = 'placement-item failed';
-            item.innerHTML = `
-                <strong>Piece ${placement.originalId + 1}:</strong> 
-                ${placement.width}×${placement.height}mm - <em>Does not fit</em>
-            `;
-            placementList.appendChild(item);
-        });
-    }
 }
 
 // Draw board layout on canvas
@@ -577,9 +478,6 @@ function calculateWaste(boardWidth, boardHeight, usedSpaces) {
 
 // Initialize
 document.addEventListener('DOMContentLoaded', function() {
-    // Show no result message initially
-    document.getElementById('noResultMessage').style.display = 'block';
-    
     // Initialize paste handlers
     initializePasteHandlers();
 });
