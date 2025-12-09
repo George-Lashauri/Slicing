@@ -1,3 +1,6 @@
+/* ============================================
+   RESET & BASE STYLES
+   ============================================ */
 * {
     margin: 0;
     padding: 0;
@@ -25,12 +28,32 @@ body {
     line-height: 1.6;
 }
 
+/* ============================================
+   LAYOUT & CONTAINER
+   ============================================ */
 .container {
     max-width: 1400px;
     margin: 0 auto;
     padding: 20px;
 }
 
+.layout {
+    display: flex;
+    justify-content: center;
+    margin-bottom: 40px;
+}
+
+main {
+    background: var(--surface);
+    border-radius: 12px;
+    padding: 30px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    margin-bottom: 30px;
+}
+
+/* ============================================
+   HEADER
+   ============================================ */
 header {
     text-align: center;
     margin-bottom: 40px;
@@ -52,39 +75,38 @@ header .subtitle {
     opacity: 0.95;
 }
 
-main {
-    background: var(--surface);
-    border-radius: 12px;
-    padding: 30px;
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-    margin-bottom: 30px;
-}
-
-.layout {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 40px;
-    margin-bottom: 40px;
-}
-
+/* ============================================
+   TYPOGRAPHY
+   ============================================ */
 h2 {
     font-size: 1.5em;
     margin-bottom: 20px;
     color: var(--text-primary);
     border-bottom: 2px solid var(--border);
     padding-bottom: 10px;
+    text-align: center;
 }
 
-.input-section,
-.results-section {
-    display: flex;
-    flex-direction: column;
+.section-spacing {
+    margin-top: 30px;
 }
 
 .instruction {
     color: var(--text-secondary);
     font-size: 0.95em;
     margin-bottom: 15px;
+}
+
+/* ============================================
+   INPUT SECTION
+   ============================================ */
+.input-section,
+.results-section {
+    display: flex;
+    flex-direction: column;
+    max-width: 800px;
+    width: 100%;
+    margin: 0 auto;
 }
 
 .form-group {
@@ -107,18 +129,6 @@ h2 {
     transition: all 0.3s ease;
 }
 
-/* Remove number input arrows from Board Specifications */
-.form-group input[type="number"]::-webkit-outer-spin-button,
-.form-group input[type="number"]::-webkit-inner-spin-button {
-    -webkit-appearance: none;
-    margin: 0;
-}
-
-.form-group input[type="number"] {
-    appearance: textfield;
-    -moz-appearance: textfield;
-}
-
 .form-group input:focus {
     outline: none;
     border-color: var(--primary-color);
@@ -133,13 +143,24 @@ h2 {
     font-weight: 400;
 }
 
-#cutsList {
-    display: flex;
-    flex-direction: column;
-    gap: 15px;
-    margin-bottom: 20px;
+/* Remove number input arrows */
+.form-group input[type="number"]::-webkit-outer-spin-button,
+.form-group input[type="number"]::-webkit-inner-spin-button,
+.cuts-table input[type="number"]::-webkit-outer-spin-button,
+.cuts-table input[type="number"]::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
 }
 
+.form-group input[type="number"],
+.cuts-table input[type="number"] {
+    appearance: textfield;
+    -moz-appearance: textfield;
+}
+
+/* ============================================
+   CUTS TABLE
+   ============================================ */
 .cuts-table-wrapper {
     margin-bottom: 20px;
     border: 2px solid var(--border);
@@ -160,10 +181,21 @@ h2 {
 
 .cuts-table th {
     padding: 10px 12px;
-    text-align: left;
     font-weight: 600;
     font-size: 0.95em;
     border-bottom: 2px solid var(--border);
+}
+
+/* Table header alignment - match input fields */
+.cuts-table th.col-number {
+    text-align: center;
+    width: 60px;
+}
+
+.cuts-table th.col-width,
+.cuts-table th.col-height,
+.cuts-table th.col-quantity {
+    text-align: left;
 }
 
 .cuts-table tbody tr {
@@ -181,16 +213,17 @@ h2 {
 
 .cuts-table td {
     padding: 8px 12px;
+    text-align: center;
 }
 
 .cut-number {
     font-weight: 600;
     color: var(--primary-color);
-    width: 30px;
     text-align: center;
+    width: 60px;
 }
 
-.cuts-table input {
+.cuts-table td input {
     width: 100%;
     padding: 8px 10px;
     border: 2px solid var(--border);
@@ -198,68 +231,23 @@ h2 {
     font-size: 0.95em;
     transition: all 0.3s ease;
     font-family: inherit;
+    text-align: left;
 }
 
-/* Remove number input arrows */
-.cuts-table input[type="number"]::-webkit-outer-spin-button,
-.cuts-table input[type="number"]::-webkit-inner-spin-button {
-    -webkit-appearance: none;
-    margin: 0;
-}
-
-.cuts-table input[type="number"] {
-    appearance: textfield;
-    -moz-appearance: textfield;
-}
-
-.cuts-table input:focus {
+.cuts-table td input:focus {
     outline: none;
     border-color: var(--primary-color);
     box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
     background-color: #f0f9ff;
 }
 
-.cuts-table input::placeholder {
+.cuts-table td input::placeholder {
     color: var(--text-secondary);
 }
 
-.cut-item {
-    display: grid;
-    grid-template-columns: 1fr 1fr 80px 40px;
-    gap: 10px;
-    align-items: flex-end;
-}
-
-.cut-item input {
-    padding: 10px;
-    border: 2px solid var(--border);
-    border-radius: 6px;
-    font-size: 0.95em;
-    transition: all 0.3s ease;
-}
-
-.cut-item input:focus {
-    outline: none;
-    border-color: var(--primary-color);
-    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
-}
-
-.btn-remove {
-    background-color: var(--danger-color);
-    color: white;
-    border: none;
-    border-radius: 6px;
-    font-size: 1.2em;
-    cursor: pointer;
-    padding: 10px;
-    transition: background-color 0.3s ease;
-    font-weight: bold;
-}
-
-.btn-remove:hover {
-    background-color: #dc2626;
-}
-
+/* ============================================
+   BUTTONS
+   ============================================ */
 .button-group {
     display: flex;
     gap: 10px;
@@ -296,7 +284,36 @@ h2 {
     background-color: #4b5563;
 }
 
-/* Results Section */
+/* ============================================
+   VISUALIZATION SECTION
+   ============================================ */
+.visualization-section {
+    background: var(--surface);
+    border-radius: 12px;
+    padding: 30px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+#boardCanvas {
+    border: 2px solid var(--border);
+    border-radius: 8px;
+    background-color: #fafafa;
+    display: block;
+    margin: 20px auto;
+    max-width: 100%;
+    height: auto;
+}
+
+.canvas-info {
+    text-align: center;
+    color: var(--text-secondary);
+    font-size: 0.9em;
+    margin-top: 10px;
+}
+
+/* ============================================
+   RESULTS SECTION (for future use)
+   ============================================ */
 .result-status {
     padding: 20px;
     border-radius: 8px;
@@ -386,36 +403,12 @@ h2 {
     font-size: 1.1em;
 }
 
-/* Visualization Section */
-.visualization-section {
-    background: var(--surface);
-    border-radius: 12px;
-    padding: 30px;
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-}
-
-#boardCanvas {
-    border: 2px solid var(--border);
-    border-radius: 8px;
-    background-color: #fafafa;
-    display: block;
-    margin: 20px auto;
-    max-width: 100%;
-    height: auto;
-}
-
-.canvas-info {
-    text-align: center;
-    color: var(--text-secondary);
-    font-size: 0.9em;
-    margin-top: 10px;
-}
-
-/* Responsive Design */
+/* ============================================
+   RESPONSIVE DESIGN
+   ============================================ */
 @media (max-width: 1024px) {
     .layout {
-        grid-template-columns: 1fr;
-        gap: 30px;
+        justify-content: center;
     }
 
     header h1 {
@@ -444,10 +437,6 @@ h2 {
         font-size: 1.7em;
     }
 
-    .cut-item {
-        grid-template-columns: 1fr;
-    }
-
     .button-group {
         flex-direction: column;
     }
@@ -462,7 +451,9 @@ h2 {
     }
 }
 
-/* Scrollbar Styling */
+/* ============================================
+   SCROLLBAR STYLING
+   ============================================ */
 ::-webkit-scrollbar {
     width: 8px;
 }
