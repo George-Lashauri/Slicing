@@ -1,483 +1,216 @@
-// Global state
+const INITIAL_ROWS = 5, CUT_SPACING = 3;
 let placements = [];
-const INITIAL_ROWS = 5;
 
-// Create a new cut row
-function createCutRow(rowNumber) {
+function createCutRow(n) {
     const tr = document.createElement('tr');
     tr.className = 'cut-row';
-    tr.innerHTML = `
-        <td class="cut-number">${rowNumber}</td>
-        <td><input type="number" class="cut-width" placeholder="e.g., 1000" min="1"></td>
-        <td><input type="number" class="cut-height" placeholder="e.g., 500" min="1"></td>
-        <td><input type="number" class="cut-quantity" placeholder="1" min="1" value="1"></td>
-    `;
-    
-    // Add paste handler to new inputs
-    const inputs = tr.querySelectorAll('input');
-    inputs.forEach(input => {
-        input.addEventListener('paste', (e) => handlePaste(e));
-    });
-    
+    tr.innerHTML = `<td class="cut-number">${n}</td><td><input type="number" class="cut-width" placeholder="e.g., 1000" min="1"></td><td><input type="number" class="cut-height" placeholder="e.g., 500" min="1"></td><td><input type="number" class="cut-quantity" placeholder="1" min="1" value="1"></td>`;
+    tr.querySelectorAll('input').forEach(i => i.addEventListener('paste', handlePaste));
     return tr;
 }
 
-// Initialize paste handlers for cut cells
 function initializePasteHandlers() {
-    const cutRows = document.querySelectorAll('.cut-row');
-    
-    cutRows.forEach((row, rowIndex) => {
-        const inputs = row.querySelectorAll('input');
-        
-        inputs.forEach((input, colIndex) => {
-            input.addEventListener('paste', (e) => handlePaste(e));
-        });
-    });
+    document.querySelectorAll('.cut-row input').forEach(i => i.addEventListener('paste', handlePaste));
 }
 
-// Handle paste event with smart distribution and dynamic row creation
-function handlePaste(event) {
-    event.preventDefault();
+function handlePaste(e) {
+    e.preventDefault();
+    const data = e.clipboardData.getData('text/plain').trim().split('\n').flatMap(l => l.trim().split(/\s+|,\s*/)).filter(v => v);
+    if (!data.length) return;
     
-    // Get pasted data
-    const pastedText = event.clipboardData.getData('text/plain');
-    const lines = pastedText.trim().split('\n');
-    
-    // Parse the pasted data
-    const data = [];
-    lines.forEach(line => {
-        const values = line.trim().split(/\s+|,\s*/);
-        values.forEach(val => {
-            if (val) data.push(val);
-        });
-    });
-    
-    if (data.length === 0) return;
-    
-    // Get all input cells
-    let allInputs = Array.from(document.querySelectorAll('.cuts-table input'));
-    const startIndex = allInputs.indexOf(event.target);
+    let inputs = Array.from(document.querySelectorAll('.cuts-table input'));
+    const start = inputs.indexOf(e.target);
     const tbody = document.getElementById('cutsList');
+    const rows = document.querySelectorAll('.cut-row').length;
+    const needed = Math.ceil(data.length / 3);
     
-    // Calculate how many rows we need
-    const currentRows = document.querySelectorAll('.cut-row').length;
-    const inputsPerRow = 3; // width, height, quantity (not counting the number cell)
-    const rowsNeeded = Math.ceil(data.length / inputsPerRow);
-    
-    // Add new rows if needed
-    if (rowsNeeded > currentRows) {
-        for (let i = currentRows + 1; i <= rowsNeeded; i++) {
-            tbody.appendChild(createCutRow(i));
-        }
-        // Refresh the inputs array after adding new rows
-        allInputs = Array.from(document.querySelectorAll('.cuts-table input'));
+    if (needed > rows) {
+        for (let i = rows + 1; i <= needed; i++) tbody.appendChild(createCutRow(i));
+        inputs = Array.from(document.querySelectorAll('.cuts-table input'));
     }
     
-    // Distribute data starting from current cell
-    data.forEach((value, index) => {
-        const targetIndex = startIndex + index;
-        if (targetIndex < allInputs.length) {
-            allInputs[targetIndex].value = value;
-            allInputs[targetIndex].dispatchEvent(new Event('change', { bubbles: true }));
+    data.forEach((v, i) => {
+        if (inputs[start + i]) {
+            inputs[start + i].value = v;
+            inputs[start + i].dispatchEvent(new Event('change', { bubbles: true }));
         }
     });
 }
 
-// Reset form to initial state
 function resetForm() {
-    const tbody = document.getElementById('cutsList');
-    const allRows = document.querySelectorAll('.cut-row');
-    
-    // Clear all input values
-    document.querySelectorAll('.cuts-table input').forEach(input => {
-        input.value = '';
-    });
-    
-    // Remove extra rows (keep only initial 5)
-    if (allRows.length > INITIAL_ROWS) {
-        for (let i = allRows.length - 1; i >= INITIAL_ROWS; i--) {
-            allRows[i].remove();
-        }
+    document.querySelectorAll('.cuts-table input').forEach(i => i.value = '');
+    const rows = document.querySelectorAll('.cut-row');
+    if (rows.length > INITIAL_ROWS) {
+        for (let i = rows.length - 1; i >= INITIAL_ROWS; i--) rows[i].remove();
     }
-    
-    // Reset board number to 1
     document.getElementById('numBoards').value = '1';
 }
 
-// Get cut items from form
 function getCutItems() {
     const cuts = [];
-    const cutRows = document.querySelectorAll('.cut-row');
-    
-    cutRows.forEach(row => {
-        const widthInput = row.querySelector('.cut-width');
-        const heightInput = row.querySelector('.cut-height');
-        const quantityInput = row.querySelector('.cut-quantity');
-        
-        const width = parseInt(widthInput.value) || 0;
-        const height = parseInt(heightInput.value) || 0;
-        const quantity = parseInt(quantityInput.value) || 0;
-        
-        if (width > 0 && height > 0 && quantity > 0) {
-            for (let i = 0; i < quantity; i++) {
-                cuts.push({ width, height, id: cuts.length });
-            }
+    document.querySelectorAll('.cut-row').forEach(row => {
+        const w = parseInt(row.querySelector('.cut-width').value) || 0;
+        const h = parseInt(row.querySelector('.cut-height').value) || 0;
+        const q = parseInt(row.querySelector('.cut-quantity').value) || 0;
+        if (w > 0 && h > 0 && q > 0) {
+            for (let i = 0; i < q; i++) cuts.push({ width: w, height: h, id: cuts.length });
         }
     });
-    
     return cuts;
 }
 
-// Pack rectangles across multiple boards
-function packMultipleBoards(boardWidth, boardHeight, numBoards, rectangles) {
-    const allPlacements = [];
-    let remainingRects = [...rectangles];
+function packMultipleBoards(bw, bh, nb, rects) {
+    const ap = [];
+    let rem = [...rects];
+    const fb = Math.floor(nb);
+    const pb = nb % 1 !== 0;
     
-    // Calculate how many full boards we have
-    const fullBoards = Math.floor(numBoards);
-    const hasPartialBoard = numBoards % 1 !== 0;
-    
-    // Pack into each full board
-    for (let boardIdx = 0; boardIdx < fullBoards; boardIdx++) {
-        const boardPlacements = packRectangles(boardWidth, boardHeight, remainingRects);
-        
-        // Add board index to placements and separate successful from failed
-        const successful = boardPlacements.filter(p => !p.failed);
-        const failed = boardPlacements.filter(p => p.failed);
-        
-        successful.forEach(p => {
-            allPlacements.push({ ...p, boardNumber: boardIdx + 1 });
-        });
-        
-        // Keep only failed pieces for next board
-        remainingRects = failed.map(f => ({
-            width: f.width,
-            height: f.height,
-            id: f.id,
-            originalId: f.originalId
-        }));
+    for (let bi = 0; bi < fb; bi++) {
+        const bp = packRectangles(bw, bh, rem);
+        const s = bp.filter(p => !p.failed);
+        const f = bp.filter(p => p.failed);
+        s.forEach(p => ap.push({ ...p, boardNumber: bi + 1 }));
+        rem = f.map(x => ({ width: x.width, height: x.height, id: x.id, originalId: x.originalId }));
     }
     
-    // Pack into partial board if it exists
-    if (hasPartialBoard && remainingRects.length > 0) {
-        const partialHeight = Math.floor(boardHeight / 2);
-        const boardPlacements = packRectangles(boardWidth, partialHeight, remainingRects);
-        
-        const successful = boardPlacements.filter(p => !p.failed);
-        const failed = boardPlacements.filter(p => p.failed);
-        
-        successful.forEach(p => {
-            allPlacements.push({ ...p, boardNumber: fullBoards + 1, isPartial: true });
-        });
-        
-        // Add remaining failed pieces
-        failed.forEach(f => {
-            allPlacements.push({ ...f, boardNumber: fullBoards + 1, failed: true });
-        });
-    } else if (remainingRects.length > 0) {
-        // If no partial board, mark remaining as failed
-        remainingRects.forEach(rect => {
-            allPlacements.push({
-                x: -1,
-                y: -1,
-                width: rect.width,
-                height: rect.height,
-                id: rect.id,
-                originalId: rect.originalId,
-                failed: true
-            });
-        });
+    if (pb && rem.length > 0) {
+        const ph = Math.floor(bh / 2);
+        const bp = packRectangles(bw, ph, rem);
+        const s = bp.filter(p => !p.failed);
+        const f = bp.filter(p => p.failed);
+        s.forEach(p => ap.push({ ...p, boardNumber: fb + 1, isPartial: true }));
+        f.forEach(x => ap.push({ ...x, boardNumber: fb + 1, failed: true }));
+    } else if (rem.length > 0) {
+        rem.forEach(r => ap.push({ x: -1, y: -1, width: r.width, height: r.height, id: r.id, originalId: r.originalId, failed: true }));
     }
-    
-    return allPlacements;
+    return ap;
 }
 
-// Spacing between cuts (in mm)
-const CUT_SPACING = 3;
-
-// 2D Bin Packing Algorithm - Guillotine Heuristic
-function packRectangles(boardWidth, boardHeight, rectangles) {
-    const placements = [];
-    const usedRectangles = new Set();
-    
-    // Try to pack each rectangle
-    for (let i = 0; i < rectangles.length; i++) {
-        const rect = rectangles[i];
+// 2D Bin Packing - Guillotine Heuristic
+function packRectangles(bw, bh, rects) {
+    const p = [];
+    for (let i = 0; i < rects.length; i++) {
+        const r = rects[i];
         let placed = false;
-        
-        // Try both orientations (normal and rotated)
-        const orientations = [
-            { w: rect.width, h: rect.height },
-            { w: rect.height, h: rect.width }
-        ];
-        
-        for (const orientation of orientations) {
+        for (const o of [{ w: r.width, h: r.height }, { w: r.height, h: r.width }]) {
             if (placed) break;
-            
-            // Try to place in each free space
-            const freeSpaces = getFreeSpaces(boardWidth, boardHeight, placements);
-            
-            for (const space of freeSpaces) {
+            for (const s of getFreeSpaces(bw, bh, p)) {
                 if (placed) break;
-                
-                if (canPlaceRectangle(orientation.w, orientation.h, space)) {
-                    placements.push({
-                        x: space.x,
-                        y: space.y,
-                        width: orientation.w,
-                        height: orientation.h,
-                        id: rect.id,
-                        originalId: i,
-                        rotated: orientation.w !== rect.width
-                    });
-                    usedRectangles.add(i);
+                if (o.w <= s.width && o.h <= s.height) {
+                    p.push({ x: s.x, y: s.y, width: o.w, height: o.h, id: r.id, originalId: i, rotated: o.w !== r.width });
                     placed = true;
                 }
             }
         }
-        
-        if (!placed) {
-            placements.push({
-                x: -1,
-                y: -1,
-                width: rect.width,
-                height: rect.height,
-                id: rect.id,
-                originalId: i,
-                failed: true
-            });
-        }
+        if (!placed) p.push({ x: -1, y: -1, width: r.width, height: r.height, id: r.id, originalId: i, failed: true });
     }
-    
-    return placements;
+    return p;
 }
 
-// Get free spaces on the board
-function getFreeSpaces(boardWidth, boardHeight, placements) {
-    const spaces = [];
+// Get free spaces
+function getFreeSpaces(bw, bh, p) {
+    const s = [];
+    if (p.length === 0) return [{ x: 0, y: 0, width: bw, height: bh }];
     
-    // Initial space is the entire board
-    if (placements.length === 0) {
-        return [{ x: 0, y: 0, width: boardWidth, height: boardHeight }];
-    }
-    
-    // Collect all placement positions with spacing
-    const usedRects = placements.filter(p => !p.failed);
-    
-    // Generate candidate positions
-    const positions = new Set();
-    positions.add('0,0');
-    
-    usedRects.forEach(rect => {
-        // Add positions after rectangle with spacing
-        positions.add(`${rect.x + rect.width + CUT_SPACING},${rect.y}`);
-        positions.add(`${rect.x},${rect.y + rect.height + CUT_SPACING}`);
+    const ur = p.filter(x => !x.failed);
+    const pos = new Set(['0,0']);
+    ur.forEach(r => {
+        pos.add(`${r.x + r.width + CUT_SPACING},${r.y}`);
+        pos.add(`${r.x},${r.y + r.height + CUT_SPACING}`);
     });
     
-    for (const pos of positions) {
-        const [x, y] = pos.split(',').map(Number);
-        if (x >= 0 && y >= 0 && x < boardWidth && y < boardHeight) {
-            const width = boardWidth - x;
-            const height = boardHeight - y;
-            
-            if (width > 0 && height > 0 && !isOverlapping(x, y, width, height, usedRects)) {
-                spaces.push({ x, y, width, height });
+    for (const pos_str of pos) {
+        const [x, y] = pos_str.split(',').map(Number);
+        if (x >= 0 && y >= 0 && x < bw && y < bh) {
+            const w = bw - x, h = bh - y;
+            if (w > 0 && h > 0 && !isOverlapping(x, y, w, h, ur)) {
+                s.push({ x, y, width: w, height: h });
             }
         }
     }
-    
-    // Sort spaces by area (larger first)
-    spaces.sort((a, b) => (b.width * b.height) - (a.width * a.height));
-    
-    return spaces;
+    s.sort((a, b) => (b.width * b.height) - (a.width * a.height));
+    return s;
 }
 
-// Check if rectangle can fit in space (with spacing consideration)
-function canPlaceRectangle(rectWidth, rectHeight, space) {
-    // Account for spacing on all sides except edges
-    return rectWidth <= space.width && rectHeight <= space.height;
-}
 
-// Check if position overlaps with existing rectangles (with spacing)
-function isOverlapping(x, y, width, height, rectangles) {
-    return rectangles.some(rect => {
-        // Add spacing around existing rectangles
-        const rectLeft = rect.x - CUT_SPACING;
-        const rectRight = rect.x + rect.width + CUT_SPACING;
-        const rectTop = rect.y - CUT_SPACING;
-        const rectBottom = rect.y + rect.height + CUT_SPACING;
-        
-        return !(x + width <= rectLeft || 
-                 x >= rectRight || 
-                 y + height <= rectTop || 
-                 y >= rectBottom);
+
+// Check overlap with spacing
+function isOverlapping(x, y, w, h, rects) {
+    return rects.some(r => {
+        const l = r.x - CUT_SPACING, rr = r.x + r.width + CUT_SPACING, t = r.y - CUT_SPACING, b = r.y + r.height + CUT_SPACING;
+        return !(x + w <= l || x >= rr || y + h <= t || y >= b);
     });
 }
 
-// Calculate cutting statistics
+// Calculate and draw
 function calculateCutting() {
-    const boardWidth = parseInt(document.getElementById('boardWidth').value);
-    const boardHeight = parseInt(document.getElementById('boardHeight').value);
-    const numBoards = parseFloat(document.getElementById('numBoards').value);
+    const bw = parseInt(document.getElementById('boardWidth').value);
+    const bh = parseInt(document.getElementById('boardHeight').value);
+    const nb = parseFloat(document.getElementById('numBoards').value);
     const cuts = getCutItems();
     
-    // Validation
-    if (!boardWidth || !boardHeight) {
-        alert('Please enter board dimensions');
-        return;
-    }
+    if (!bw || !bh) return alert('Please enter board dimensions');
+    if (nb <= 0) return alert('Please enter a valid number of boards (minimum 0.5)');
+    if (cuts.length === 0) return alert('Please add at least one cut piece');
     
-    if (numBoards <= 0) {
-        alert('Please enter a valid number of boards (minimum 0.5)');
-        return;
-    }
-    
-    if (cuts.length === 0) {
-        alert('Please add at least one cut piece');
-        return;
-    }
-    
-    // Pack rectangles across multiple boards
-    placements = packMultipleBoards(boardWidth, boardHeight, numBoards, cuts);
-    
-    // Draw visualization
-    drawBoardLayout(boardWidth, boardHeight, placements, numBoards);
+    placements = packMultipleBoards(bw, bh, nb, cuts);
+    drawBoardLayout(bw, bh, placements, nb);
 }
 
-// Draw board layout on canvas
-function drawBoardLayout(boardWidth, boardHeight, placements, numBoards) {
-    const canvas = document.getElementById('boardCanvas');
-    const ctx = canvas.getContext('2d');
+// Draw board layout
+function drawBoardLayout(bw, bh, p, nb) {
+    const c = document.getElementById('boardCanvas'), ctx = c.getContext('2d');
+    const cw = c.width, ch = c.height;
+    const bn = new Set(p.filter(x => !x.failed).map(x => x.boardNumber));
+    const nbs = Math.max(bn.size, Math.ceil(nb));
+    const bpr = nbs <= 2 ? nbs : 2;
+    const br = Math.ceil(nbs / bpr);
+    const aw = cw / bpr, ah = ch / br;
+    const scale = Math.min(aw / bw, ah / bh) * 0.85;
     
-    const canvasWidth = canvas.width;
-    const canvasHeight = canvas.height;
-    
-    // Get unique board numbers
-    const boardNumbers = new Set(placements.filter(p => !p.failed).map(p => p.boardNumber));
-    const numBoardsToShow = Math.max(boardNumbers.size, Math.ceil(numBoards));
-    
-    // Calculate scale and layout
-    let scale, offsetX, offsetY;
-    const boardsPerRow = numBoardsToShow <= 2 ? numBoardsToShow : 2;
-    const boardRows = Math.ceil(numBoardsToShow / boardsPerRow);
-    
-    const availableWidth = canvasWidth / boardsPerRow;
-    const availableHeight = canvasHeight / boardRows;
-    
-    scale = Math.min(availableWidth / boardWidth, availableHeight / boardHeight) * 0.85;
-    
-    // Clear canvas
     ctx.fillStyle = '#f9fafb';
-    ctx.fillRect(0, 0, canvasWidth, canvasHeight);
+    ctx.fillRect(0, 0, cw, ch);
     
-    // Draw each board
-    for (let boardIdx = 1; boardIdx <= numBoardsToShow; boardIdx++) {
-        const row = Math.floor((boardIdx - 1) / boardsPerRow);
-        const col = (boardIdx - 1) % boardsPerRow;
-        
-        offsetX = col * availableWidth + (availableWidth - boardWidth * scale) / 2;
-        offsetY = row * availableHeight + 30;
-        
-        // Draw board
-        drawSingleBoard(ctx, boardWidth, boardHeight, scale, offsetX, offsetY, boardIdx, placements);
+    for (let bi = 1; bi <= nbs; bi++) {
+        const r = Math.floor((bi - 1) / bpr), col = (bi - 1) % bpr;
+        const ox = col * aw + (aw - bw * scale) / 2, oy = r * ah + 30;
+        drawSingleBoard(ctx, bw, bh, scale, ox, oy, bi, p);
     }
 }
 
-// Draw a single board
-function drawSingleBoard(ctx, boardWidth, boardHeight, scale, offsetX, offsetY, boardNum, placements) {
-    // Draw board outline
+// Draw single board
+function drawSingleBoard(ctx, bw, bh, sc, ox, oy, bn, p) {
     ctx.strokeStyle = '#111827';
     ctx.lineWidth = 3;
-    ctx.strokeRect(offsetX, offsetY, boardWidth * scale, boardHeight * scale);
-    
-    // Draw board number
+    ctx.strokeRect(ox, oy, bw * sc, bh * sc);
     ctx.fillStyle = '#1f2937';
     ctx.font = 'bold 16px sans-serif';
     ctx.textAlign = 'left';
-    ctx.fillText(`Board #${boardNum}`, offsetX + 10, offsetY - 8);
-    
-    // Draw board dimensions
+    ctx.fillText(`Board #${bn}`, ox + 10, oy - 8);
     ctx.fillStyle = '#6b7280';
     ctx.font = 'bold 12px sans-serif';
     ctx.textAlign = 'center';
-    ctx.fillText(`${boardWidth}mm`, offsetX + (boardWidth * scale) / 2, offsetY - 25);
+    ctx.fillText(`${bw}mm`, ox + (bw * sc) / 2, oy - 25);
     
-    // Draw placements on this board
-    placements.filter(p => p.boardNumber === boardNum && !p.failed).forEach((placement) => {
-        const x = offsetX + placement.x * scale;
-        const y = offsetY + placement.y * scale;
-        const width = placement.width * scale;
-        const height = placement.height * scale;
-        
-        // Draw spacing around piece
+    p.filter(x => x.boardNumber === bn && !x.failed).forEach(pl => {
+        const x = ox + pl.x * sc, y = oy + pl.y * sc, w = pl.width * sc, h = pl.height * sc;
         ctx.fillStyle = '#f3f4f633';
-        ctx.fillRect(x - CUT_SPACING * scale, y - CUT_SPACING * scale, 
-                     width + 2 * CUT_SPACING * scale, height + 2 * CUT_SPACING * scale);
-        
-        // Draw rectangle
+        ctx.fillRect(x - CUT_SPACING * sc, y - CUT_SPACING * sc, w + 2 * CUT_SPACING * sc, h + 2 * CUT_SPACING * sc);
         ctx.fillStyle = '#10b98133';
-        ctx.fillRect(x, y, width, height);
-        
-        // Draw border
+        ctx.fillRect(x, y, w, h);
         ctx.strokeStyle = '#10b981';
         ctx.lineWidth = 2;
-        ctx.strokeRect(x, y, width, height);
-        
-        // Draw text
-        ctx.fillStyle = '#065f46';
-        ctx.font = 'bold 10px sans-serif';
-        ctx.textAlign = 'center';
-        ctx.textBaseline = 'middle';
-        
-        const textX = x + width / 2;
-        const textY = y + height / 2;
-        
-        if (width > 40 && height > 30) {
-            ctx.fillText(`${placement.width}×${placement.height}`, textX, textY - 6);
+        ctx.strokeRect(x, y, w, h);
+        if (w > 40 && h > 30) {
+            ctx.fillStyle = '#065f46';
+            ctx.font = 'bold 10px sans-serif';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText(`${pl.width}×${pl.height}`, x + w / 2, y + h / 2 - 6);
             ctx.font = '9px sans-serif';
-            ctx.fillText(`#${placement.originalId + 1}`, textX, textY + 6);
+            ctx.fillText(`#${pl.originalId + 1}`, x + w / 2, y + h / 2 + 6);
         }
     });
 }
 
-// Draw waste areas on canvas
-function drawWaste(ctx, boardWidth, boardHeight, usedSpaces, offsetX, offsetY, scale) {
-    ctx.fillStyle = '#ef444433';
-    ctx.strokeStyle = '#ef4444';
-    ctx.lineWidth = 1;
-    ctx.setLineDash([4, 4]);
-    
-    // Simple waste visualization - show board minus used areas
-    const wasteRects = calculateWaste(boardWidth, boardHeight, usedSpaces);
-    
-    wasteRects.forEach(waste => {
-        const x = offsetX + waste.x * scale;
-        const y = offsetY + waste.y * scale;
-        const width = waste.width * scale;
-        const height = waste.height * scale;
-        
-        ctx.fillRect(x, y, width, height);
-        ctx.strokeRect(x, y, width, height);
-    });
-    
-    ctx.setLineDash([]);
-}
-
-// Calculate waste areas (simplified)
-function calculateWaste(boardWidth, boardHeight, usedSpaces) {
-    // For simplicity, we'll just show one waste area
-    // In a production app, this would be more sophisticated
-    const waste = [];
-    
-    if (usedSpaces.length === 0) {
-        waste.push({ x: 0, y: 0, width: boardWidth, height: boardHeight });
-    }
-    
-    return waste;
-}
-
-// Initialize
-document.addEventListener('DOMContentLoaded', function() {
-    // Initialize paste handlers
-    initializePasteHandlers();
-});
+document.addEventListener('DOMContentLoaded', initializePasteHandlers);
